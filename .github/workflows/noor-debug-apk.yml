@@ -1,0 +1,78 @@
+name: Noor Debug APK - Fast Install
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'noor_src/**'
+      - '.github/workflows/noor-debug-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Noor
+        uses: actions/checkout@v4
+
+      - name: Checkout open-source Flutter base
+        uses: actions/checkout@v4
+        with:
+          repository: mo7amedaliEbaid/islamic
+          ref: master
+          path: islamic-base
+          fetch-depth: 1
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.10.6'
+          cache: true
+
+      - name: Prepare Noor
+        working-directory: islamic-base
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('pubspec.yaml')
+          s=p.read_text().replace('name: islamic','name: noor')
+          p.write_text(s)
+          for root in ['lib','test']:
+            d=Path(root)
+            if d.exists():
+              for f in d.rglob('*.dart'):
+                f.write_text(f.read_text().replace('package:islamic/','package:noor/'))
+          PY
+          if [ -f android/app/build.gradle ]; then sed -i 's/applicationId "[^"]*"/applicationId "com.noorpromax"/' android/app/build.gradle || true; fi
+          if [ -f android/app/build.gradle.kts ]; then sed -i 's/applicationId = "[^"]*"/applicationId = "com.noorpromax"/' android/app/build.gradle.kts || true; fi
+          if [ -f android/app/src/main/AndroidManifest.xml ]; then sed -i 's/android:label="[^"]*"/android:label="Noor"/' android/app/src/main/AndroidManifest.xml || true; fi
+          cp ../noor_src/main.dart lib/main.dart
+
+      - name: Get dependencies
+        working-directory: islamic-base
+        run: flutter pub get
+
+      - name: Build DEBUG APK
+        working-directory: islamic-base
+        run: flutter build apk --debug
+
+      - name: Verify APK
+        run: test -s islamic-base/build/app/outputs/flutter-apk/app-debug.apk
+
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Noor-Debug-APK
+          path: islamic-base/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
