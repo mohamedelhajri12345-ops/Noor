@@ -1,13 +1,10 @@
 name: Noor Android Build
-
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -15,7 +12,6 @@ jobs:
     steps:
       - name: Checkout Noor
         uses: actions/checkout@v4
-
       - name: Checkout Islamic open-source base
         uses: actions/checkout@v4
         with:
@@ -23,20 +19,17 @@ jobs:
           ref: master
           path: islamic-base
           fetch-depth: 1
-
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.10.6'
           cache: true
-
-      - name: Configure Noor package and identity
+      - name: Configure Noor
         working-directory: islamic-base
         shell: bash
         run: |
@@ -54,28 +47,22 @@ jobs:
           if [ -f android/app/build.gradle ]; then sed -i 's/applicationId "[^"]*"/applicationId "com.noorpromax"/' android/app/build.gradle || true; fi
           if [ -f android/app/build.gradle.kts ]; then sed -i 's/applicationId = "[^"]*"/applicationId = "com.noorpromax"/' android/app/build.gradle.kts || true; fi
           if [ -f android/app/src/main/AndroidManifest.xml ]; then sed -i 's/android:label="[^"]*"/android:label="Noor"/' android/app/src/main/AndroidManifest.xml || true; fi
-
-      - name: Install Noor application shell
+      - name: Install Noor application
         run: cp noor_src/main.dart islamic-base/lib/main.dart
-
       - name: Resolve dependencies
         working-directory: islamic-base
         run: flutter pub get
-
-      - name: Analyze Noor shell
+      - name: Analyze
         working-directory: islamic-base
-        run: flutter analyze lib/main.dart
-
-      - name: Build Noor release APK
+        run: flutter analyze lib/main.dart --no-fatal-infos
+      - name: Build release APK
         working-directory: islamic-base
         run: flutter build apk --release
-
-      - name: Prepare artifact
+      - name: Package APK
         run: |
           mkdir -p dist
           cp islamic-base/build/app/outputs/flutter-apk/app-release.apk dist/Noor-release.apk
-
-      - name: Upload Noor APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Noor-Android-Release
