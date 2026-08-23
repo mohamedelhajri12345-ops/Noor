@@ -36,7 +36,7 @@ jobs:
           flutter-version: '3.10.6'
           cache: true
 
-      - name: Configure Noor identity and Android package
+      - name: Configure Noor package and identity
         working-directory: islamic-base
         shell: bash
         run: |
@@ -49,56 +49,22 @@ jobs:
             d=Path(root)
             if d.exists():
               for f in d.rglob('*.dart'):
-                s=f.read_text().replace('package:islamic/','package:noor/')
-                f.write_text(s)
+                f.write_text(f.read_text().replace('package:islamic/','package:noor/'))
           PY
           if [ -f android/app/build.gradle ]; then sed -i 's/applicationId "[^"]*"/applicationId "com.noorpromax"/' android/app/build.gradle || true; fi
           if [ -f android/app/build.gradle.kts ]; then sed -i 's/applicationId = "[^"]*"/applicationId = "com.noorpromax"/' android/app/build.gradle.kts || true; fi
           if [ -f android/app/src/main/AndroidManifest.xml ]; then sed -i 's/android:label="[^"]*"/android:label="Noor"/' android/app/src/main/AndroidManifest.xml || true; fi
 
-      - name: Install Noor visual foundation
-        working-directory: islamic-base
-        shell: bash
-        run: |
-          cat > lib/noor_theme.dart <<'DART'
-          import 'package:flutter/material.dart';
-          class NoorColors {
-            static const olive = Color(0xFF4E5635);
-            static const oliveDark = Color(0xFF252B1B);
-            static const crimson = Color(0xFF8D2436);
-            static const silver = Color(0xFFB9BEC6);
-            static const ivory = Color(0xFFF6F2E8);
-          }
-          ThemeData noorTheme(Brightness brightness) {
-            final dark = brightness == Brightness.dark;
-            final base = ThemeData(brightness: brightness, useMaterial3: true);
-            return base.copyWith(
-              scaffoldBackgroundColor: dark ? NoorColors.oliveDark : NoorColors.ivory,
-              colorScheme: ColorScheme.fromSeed(seedColor: NoorColors.olive, brightness: brightness).copyWith(secondary: NoorColors.crimson),
-              appBarTheme: AppBarTheme(centerTitle: true, elevation: 0, backgroundColor: dark ? NoorColors.oliveDark : NoorColors.ivory, foregroundColor: dark ? Colors.white : NoorColors.oliveDark),
-              cardTheme: CardThemeData(elevation: 1, margin: const EdgeInsets.all(8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22))),
-            );
-          }
-          DART
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('lib/core/app.dart')
-          s=p.read_text()
-          if "import '../noor_theme.dart';" not in s:
-            s=s.replace("import '../app/resources/resources.dart';", "import '../app/resources/resources.dart';\nimport '../noor_theme.dart';")
-          s=s.replace('darkTheme: getApplicationLDarkTheme(),', 'darkTheme: noorTheme(Brightness.dark),')
-          s=s.replace('theme: getApplicationLightTheme(),', 'theme: noorTheme(Brightness.light),')
-          p.write_text(s)
-          PY
+      - name: Install Noor application shell
+        run: cp noor_src/main.dart islamic-base/lib/main.dart
 
       - name: Resolve dependencies
         working-directory: islamic-base
         run: flutter pub get
 
-      - name: Analyze
+      - name: Analyze Noor shell
         working-directory: islamic-base
-        run: flutter analyze --no-fatal-infos
-        continue-on-error: true
+        run: flutter analyze lib/main.dart
 
       - name: Build Noor release APK
         working-directory: islamic-base
