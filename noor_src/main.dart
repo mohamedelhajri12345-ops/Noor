@@ -1,0 +1,63 @@
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+const olive = Color(0xFF4E5635);
+const deepOlive = Color(0xFF252B1B);
+const crimson = Color(0xFF8D2436);
+const silver = Color(0xFFB9BEC6);
+const ivory = Color(0xFFF6F2E8);
+
+void main() => runApp(const NoorApp());
+
+class NoorApp extends StatefulWidget {
+  const NoorApp({super.key});
+  @override State<NoorApp> createState() => _NoorAppState();
+}
+
+class _NoorAppState extends State<NoorApp> {
+  bool dark = false;
+  @override Widget build(BuildContext context) => MaterialApp(
+    debugShowCheckedModeBanner: false,
+    title: 'Noor',
+    themeMode: dark ? ThemeMode.dark : ThemeMode.light,
+    theme: ThemeData(useMaterial3: true, fontFamily: 'ElMessiri', colorScheme: ColorScheme.fromSeed(seedColor: olive), scaffoldBackgroundColor: ivory),
+    darkTheme: ThemeData(useMaterial3: true, fontFamily: 'ElMessiri', brightness: Brightness.dark, colorScheme: ColorScheme.fromSeed(seedColor: olive, brightness: Brightness.dark), scaffoldBackgroundColor: deepOlive),
+    home: NoorShell(onTheme: () => setState(() => dark = !dark)),
+  );
+}
+
+class NoorShell extends StatefulWidget {
+  final VoidCallback onTheme;
+  const NoorShell({super.key, required this.onTheme});
+  @override State<NoorShell> createState() => _NoorShellState();
+}
+class _NoorShellState extends State<NoorShell> {
+  int tab = 0;
+  int tasbeeh = 0;
+  final pages = const [HomePage(), QuranPage(), PrayerPage(), AzkarPage(), MorePage()];
+  @override void initState(){ super.initState(); _load(); }
+  Future<void> _load() async { final p=await SharedPreferences.getInstance(); setState(()=>tasbeeh=p.getInt('tasbeeh')??0); }
+  Future<void> _count() async { final p=await SharedPreferences.getInstance(); final n=tasbeeh+1; await p.setInt('tasbeeh',n); setState(()=>tasbeeh=n); }
+  @override Widget build(BuildContext context)=>Scaffold(
+    body: pages[tab],
+    bottomNavigationBar: NavigationBar(selectedIndex: tab, onDestinationSelected:(i)=>setState(()=>tab=i), destinations: const [NavigationDestination(icon:Icon(Icons.home_outlined),selectedIcon:Icon(Icons.home),label:'الرئيسية'),NavigationDestination(icon:Icon(Icons.menu_book_outlined),selectedIcon:Icon(Icons.menu_book),label:'القرآن'),NavigationDestination(icon:Icon(Icons.access_time),selectedIcon:Icon(Icons.access_time_filled),label:'الصلاة'),NavigationDestination(icon:Icon(Icons.favorite_outline),selectedIcon:Icon(Icons.favorite),label:'الأذكار'),NavigationDestination(icon:Icon(Icons.apps_outlined),selectedIcon:Icon(Icons.apps),label:'المزيد')]),
+    floatingActionButton: tab==4 ? FloatingActionButton.extended(onPressed:_count,backgroundColor:crimson,icon:const Icon(Icons.radio_button_checked),label:Text('تسبيح  $tasbeeh')) : null,
+  );
+}
+
+class NoorHeader extends StatelessWidget { final String title; final String? subtitle; const NoorHeader({super.key,required this.title,this.subtitle}); @override Widget build(BuildContext c)=>Container(padding:const EdgeInsets.fromLTRB(20,52,20,22),decoration:const BoxDecoration(gradient:LinearGradient(colors:[deepOlive,olive,crimson],begin:Alignment.topRight,end:Alignment.bottomLeft),borderRadius:BorderRadius.vertical(bottom:Radius.circular(30))),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('نُور',style:TextStyle(color:silver,fontSize:18,fontWeight:FontWeight.w600,letterSpacing:3)),const SizedBox(height:8),Text(title,style:const TextStyle(color:Colors.white,fontSize:30,fontWeight:FontWeight.bold)),if(subtitle!=null) ...[const SizedBox(height:5),Text(subtitle!,style:const TextStyle(color:Colors.white70,fontSize:14))]]);}
+
+class HomePage extends StatelessWidget { const HomePage({super.key}); @override Widget build(BuildContext c)=>ListView(padding:EdgeInsets.zero,children:[const NoorHeader(title:'السلام عليكم ورحمة الله',subtitle:'اجعل يومك أكثر قربًا وطمأنينة'),Padding(padding:EdgeInsets.all(16),child:PrayerCard()),Padding(padding:EdgeInsets.symmetric(horizontal:16),child:Row(children:[Expanded(child:QuickCard(icon:Icons.menu_book,title:'تابع القرآن',text:'سورة البقرة • آية 25')),Expanded(child:QuickCard(icon:Icons.favorite,title:'ورد اليوم',text:'أذكار الصباح'))])),Padding(padding:EdgeInsets.all(16),child:SectionCard(title:'أعمال اليوم',children:[Task('الفجر','تم'),Task('ورد القرآن','قريبًا'),Task('أذكار الصباح','تم'),Task('الصدقة','مقترح')])),Padding(padding:EdgeInsets.all(16),child:SectionCard(title:'اختصارات',children:[Wrap(spacing:10,runSpacing:10,children:const [ActionChip(icon:Icons.explore,label:'القبلة'),ActionChip(icon:Icons.radio_button_checked,label:'المسبحة'),ActionChip(icon:Icons.library_books,label:'المكتبة'),ActionChip(icon:Icons.notifications_none,label:'التنبيهات')])]))]);}
+class PrayerCard extends StatelessWidget {const PrayerCard({super.key}); @override Widget build(BuildContext c)=>Container(padding:const EdgeInsets.all(20),decoration:BoxDecoration(borderRadius:BorderRadius.circular(26),gradient:const LinearGradient(colors:[olive,deepOlive]),boxShadow:[BoxShadow(blurRadius:18,color:Colors.black26)]),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[Text('الصلاة القادمة',style:TextStyle(color:silver)),Text('اليوم',style:TextStyle(color:Colors.white70))]),const SizedBox(height:8),const Text('الظهر',style:TextStyle(color:Colors.white,fontSize:28,fontWeight:FontWeight.bold)),const SizedBox(height:2),const Text('12:45',style:TextStyle(color:Colors.white,fontSize:36,fontWeight:FontWeight.w700)),const SizedBox(height:8),LinearProgressIndicator(value:.62,backgroundColor:Colors.white24,valueColor:const AlwaysStoppedAnimation(silver))]);}
+class QuickCard extends StatelessWidget {final IconData icon;final String title,text;const QuickCard({super.key,required this.icon,required this.title,required this.text});@override Widget build(BuildContext c)=>Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Icon(icon,color:crimson,size:28),const SizedBox(height:12),Text(title,style:const TextStyle(fontWeight:FontWeight.bold)),Text(text,style:const TextStyle(fontSize:12,color:Colors.grey))])));}
+class SectionCard extends StatelessWidget {final String title;final List<Widget> children;const SectionCard({super.key,required this.title,required this.children});@override Widget build(BuildContext c)=>Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(title,style:const TextStyle(fontSize:19,fontWeight:FontWeight.bold,color:olive)),const SizedBox(height:10),...children])));}
+class Task extends StatelessWidget {final String a,b;const Task(this.a,this.b,{super.key});@override Widget build(BuildContext c)=>ListTile(contentPadding:EdgeInsets.zero,leading:const Icon(Icons.check_circle_outline,color:crimson),title:Text(a),trailing:Text(b,style:const TextStyle(color:Colors.grey)));}
+class ActionChip extends StatelessWidget {final IconData icon;final String label;const ActionChip({super.key,required this.icon,required this.label});@override Widget build(BuildContext c)=>Chip(avatar:Icon(icon,size:18,color:crimson),label:Text(label));}
+
+class QuranPage extends StatelessWidget {const QuranPage({super.key});final surahs=const ['الفاتحة','البقرة','آل عمران','النساء','المائدة','الأنعام','الأعراف','الأنفال'];@override Widget build(BuildContext c)=>Column(children:[const NoorHeader(title:'القرآن الكريم',subtitle:'اقرأ بتدبر وطمأنينة'),Padding(padding:const EdgeInsets.all(16),child:TextField(decoration:InputDecoration(prefixIcon:const Icon(Icons.search),hintText:'ابحث في القرآن',filled:true,border:OutlineInputBorder(borderRadius:BorderRadius.all(Radius.circular(18)),borderSide:BorderSide.none)))),Expanded(child:ListView.builder(itemCount:surahs.length,itemBuilder:(_,i)=>ListTile(leading:CircleAvatar(backgroundColor:olive,foregroundColor:Colors.white,child:Text('${i+1}')),title:Text(surahs[i],style:const TextStyle(fontSize:18,fontWeight:FontWeight.w600)),subtitle:Text(i==1?'286 آية':'آيات القرآن الكريم'),trailing:const Icon(Icons.play_circle_outline,color:crimson),onTap:()=>showDialog(context:c,builder:(_)=>AlertDialog(title:Text(surahs[i]),content:const Text('سيتم فتح المصحف والاستماع للتلاوة المتواصلة هنا.'),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('إغلاق'))])))))]);}
+
+class PrayerPage extends StatelessWidget {const PrayerPage({super.key});@override Widget build(BuildContext c)=>ListView(padding:EdgeInsets.zero,children:[const NoorHeader(title:'مواقيت الصلاة',subtitle:'تحديد الموقع وإعداد المواقيت في Noor'),Padding(padding:EdgeInsets.all(16),child:SectionCard(title:'مواقيت اليوم',children:[Task('الفجر','05:01'),Task('الشروق','06:32'),Task('الظهر','12:45'),Task('العصر','16:25'),Task('المغرب','20:51'),Task('العشاء','22:20')])),Padding(padding:EdgeInsets.all(16),child:SectionCard(title:'أدوات الصلاة',children:[ActionChip(icon:Icons.explore,label:'القبلة'),ActionChip(icon:Icons.notifications_active_outlined,label:'إعداد الأذان'),ActionChip(icon:Icons.location_on_outlined,label:'الموقع التلقائي')]))]);}
+
+class AzkarPage extends StatelessWidget {const AzkarPage({super.key});@override Widget build(BuildContext c)=>ListView(padding:EdgeInsets.zero,children:[const NoorHeader(title:'الأذكار والأدعية',subtitle:'حصن يومك بالذكر'),Padding(padding:EdgeInsets.all(16),child:SectionCard(title:'الأقسام',children:[ActionChip(icon:Icons.wb_sunny_outlined,label:'أذكار الصباح'),ActionChip(icon:Icons.nightlight_outlined,label:'أذكار المساء'),ActionChip(icon:Icons.favorite_outline,label:'أدعية'),ActionChip(icon:Icons.mosque_outlined,label:'بعد الصلاة')])),const Padding(padding:EdgeInsets.all(16),child:Card(child:Padding(padding:EdgeInsets.all(22),child:Text('سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، سُبْحَانَ اللَّهِ الْعَظِيمِ',textAlign:TextAlign.center,style:TextStyle(fontSize:24,height:2,fontWeight:FontWeight.w600))))]);}
+
+class MorePage extends StatelessWidget {const MorePage({super.key});@override Widget build(BuildContext c)=>ListView(padding:EdgeInsets.zero,children:[const NoorHeader(title:'المزيد',subtitle:'كل أدوات Noor في مكان واحد'),...['المكتبة الإسلامية','المسبحة الإلكترونية','القبلة','دفتر العبادات','ورد اليوم','المساعد الإسلامي','الإعدادات'].map((x)=>ListTile(leading:const Icon(Icons.auto_awesome,color:crimson),title:Text(x),trailing:const Icon(Icons.chevron_left),onTap:(){ }))]);}
